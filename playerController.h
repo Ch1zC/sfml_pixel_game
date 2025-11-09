@@ -12,10 +12,18 @@ public:
     const std::string get_texture_path() { return this->player_texture_path; }
     const int get_frameSize_x()          { return this->frameSize.x; }
     const int get_frameSize_y()          { return this->frameSize.y; }
+    const int get_currentDirection()     { return this->currentDirection; };
     void set_isMovingF ()                { this->isMoving = false  ; }
     void move(std::vector<std::vector<int>>, std::vector<std::vector<int>>);
     void animationPlayer(float, sf::Sprite&);
 
+    enum textureLine
+        {
+            up    = 0,
+            down  = 1,
+            left  = 3,
+            right = 2
+        };
 private:
 
     bool isPlayer;
@@ -39,13 +47,7 @@ private:
     int currentFrame;
     int totalFrames;
 
-    enum textureLine
-    {
-        up    = 0,
-        down  = 1,
-        left  = 3,
-        right = 2
-    };
+    
 
     sf::Vector2i frameSize;
 

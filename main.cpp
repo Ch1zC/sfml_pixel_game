@@ -2,6 +2,7 @@
 #include "public_info.h"
 #include "QuestManager.h"
 #include "levelsManager.h"
+#include "item_database.h"
 #include "playerController.h"
 
 #include <SFML/Audio.hpp>
@@ -22,6 +23,11 @@ float typewriter_timer = 0.f    ;
 int   typewriter_index = 0      ;
 std::string displayed_text = "" ;
 bool  finished_typing  = false  ;
+
+int targetGridX = 0;
+int targetGridY = 0;
+
+std::string letter_text = "";
 
 enum class GameState {
     MainMenu,    // 主菜单
@@ -62,6 +68,7 @@ void lua_queue_set_stage(std::string quest_name, int stage) {
 }
 
 bool display_gameView = true;
+bool aItemNearbyPlayer = false;
 
 int main()
 {
@@ -78,6 +85,9 @@ int main()
 
     // 地图管理
     Levels_Manager levelsManager;
+
+    // 道具管理
+    Item_Database itemDatabase;
 
     // 进度管理
     Quest_Manager questManager;
@@ -104,6 +114,12 @@ int main()
     t.setCharacterSize(22);
     t.setFillColor(sf::Color::White);
 
+    // 信的字体
+    sf::Text t_letter;
+    t_letter.setFont(f);
+    t_letter.setCharacterSize(40);
+    t_letter.setFillColor(sf::Color(0x533461FF));
+
     // 说话音效
     sf::SoundBuffer buffer;
     if (!buffer.loadFromFile("audio/talking.ogg"))
@@ -115,7 +131,21 @@ int main()
     sf::Sound playerSound;
     playerSound.setBuffer(buffer);
     playerSound.setLoop(true);
-    playerSound.setVolume(50.f);
+    playerSound.setVolume(60.f);
+
+    // 捡信音效
+    sf::SoundBuffer buffer2;
+    if (!buffer2.loadFromFile("audio/pick_up_letter.wav"))
+    {
+        std::cerr << "cant find the audio file at path: audio/pick_up_letter.ogg" << std::endl;
+        return -1;
+    }
+
+    sf::Sound sound_pick_up_letter;
+    sound_pick_up_letter.setBuffer(buffer2);
+    sound_pick_up_letter.setLoop(false);
+    sound_pick_up_letter.setVolume(60.f);
+
 
     // 主循环
     while (window.isOpen())
@@ -138,11 +168,51 @@ int main()
                 {
                     Utils::talk_text = "";
                     Utils::command_queue.pop();
+
+                    Utils::print_log("++++ contuine talking");
                     
                     currentState = GameState::cmdToDo;
                 }
-            }
-        }
+
+                // 退出读信状态
+                else if (currentState == GameState::ReadingLetter && event.key.code == sf::Keyboard::F)
+                {
+                    letter_text = "";
+                    display_gameView = true;
+
+                    Utils::print_log("++++ finished reading");
+
+                    currentState = GameState::Playing;
+                }
+
+                // 进入读信
+                else if (currentState == GameState::Playing && aItemNearbyPlayer && event.key.code == sf::Keyboard::F) {
+
+                    sound_pick_up_letter.play();
+
+                    Utils::print_log("++++ start reading");
+
+                    std::string itemID = std::to_string(Utils::levelID) + "_" + std::to_string(targetGridX) + "_" + std::to_string(targetGridY);
+
+                    std::cout << itemDatabase.get_itemInfoByID(itemID).content << std::endl;
+
+                    letter_text = itemDatabase.get_itemInfoByID(itemID).content;
+
+                    for (int i = 34; i <= letter_text.length(); i += 34) {
+
+                        std::string x = letter_text[i] == ' ' ? "\n" : "-\n-";
+                        letter_text = letter_text.substr(0, i) + x + letter_text.substr(i, letter_text.length() - 1);
+                    }
+
+                    display_gameView = false;
+
+                    currentState = GameState::ReadingLetter;
+
+                } // 进入读信 end
+
+            } // 键盘监控 end
+
+        } // 按键事件传递 end
 
         sf::Vector2f default_center  = ui_view.getCenter();
         sf::Vector2f dialogue_center = default_center;
@@ -217,7 +287,6 @@ int main()
 
                         break;
                     }
-
                 }
 
 
@@ -236,6 +305,45 @@ int main()
                 else {
                     for (int i = 0; i <= x.size() - 1;i++) {
                         x[i]->move(Utils::get_map(Utils::levelID),Utils::get_item(Utils::levelID));
+                    }
+
+                    // 检测用户所在位置是否有item可pick up
+                    Player_Controller* player = x[0].get();
+
+                    std::vector<std::vector<int>> item_map = Utils::get_item(Utils::levelID);
+                    std::vector<std::vector<int>> map      = Utils::get_map (Utils::levelID);
+
+                    sf::Vector2<int> paddingInfo = Utils::get_padding(map);
+
+                    // 计算player中心点所在坐标
+                    sf::FloatRect bounds = player->get_sprite().getGlobalBounds();
+
+                    float playerCenterX  = bounds.left + bounds.width  / 2.f;
+                    float playerCenterY  = bounds.top  + bounds.height / 2.f;
+
+                    float TS_MS = (Utils::TILE_SIZE * Utils::MAP_SCALE);
+
+                    int playerGridX = (int)(playerCenterX - paddingInfo.y) / TS_MS;
+                    int playerGridY = (int)(playerCenterY - paddingInfo.x) / TS_MS;
+
+
+                    targetGridX = playerGridX;
+                    targetGridY = playerGridY;
+
+                    int item_id = item_map[targetGridY][targetGridX];
+
+                    if (item_id < 0) {
+
+                        // there is a item
+                        //std::cout << "there is a item that you can take at (" << targetGridX << "," << targetGridY << ")" << std::endl;
+
+                        if (!aItemNearbyPlayer) aItemNearbyPlayer = true;
+                    }
+                    else {
+                        // 等玩家到了没item的地方再设为false
+                        targetGridX = 0;
+                        targetGridY = 0;
+                        if (aItemNearbyPlayer) aItemNearbyPlayer = false;
                     }
                 }
 
@@ -279,6 +387,7 @@ int main()
 
                 if (dialog_delay_timer <= 0.f) {
 
+                    // 别人说话换其他说话声音和文字颜色，主角则是白色和def.ogg
                     Utils::talk_text = Utils::command_queue.front().string_data_1 + ": " + Utils::command_queue.front().string_data_2;
 
                     displayed_text   = "" ;
@@ -290,6 +399,12 @@ int main()
                     currentState = GameState::dialog;
                 }
                 
+
+                break;
+            }
+
+            case GameState::ReadingLetter: 
+            {
 
                 break;
             }
@@ -325,6 +440,10 @@ int main()
         else if (currentState == GameState::ReadingLetter) {
 
             // 显示信件
+            t_letter.setString(letter_text);
+            t_letter.setPosition(50.f,50.f);
+
+            window.draw(t_letter);
         }
 
         // 场景 --- END ---
@@ -337,7 +456,7 @@ int main()
         
             t.setString(displayed_text);
             t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
-                Utils::WINDOW_HEIGH - 100);
+                           Utils::WINDOW_HEIGH - 100);
 
             window.draw(t);
         }
@@ -352,6 +471,9 @@ int main()
 
 /*
 
-背包效果可以直接一个item一个window，关闭window的话等于丢掉item，用掉item的话自动关闭对应window
+灵感:
 
+1 - 背包效果可以直接一个item一个window，关闭window的话等于丢掉item，用掉item的话自动关闭对应window
+
+2 - 直接画所有地图不过限制game_view可视范围，如果玩家坐标超出了范围得到玩家朝哪个方向走的然后向那个方向移动以一个地图的距离实现跨地图
 */
