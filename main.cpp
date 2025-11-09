@@ -235,7 +235,7 @@ int main()
                 }
                 else {
                     for (int i = 0; i <= x.size() - 1;i++) {
-                        x[i]->move(Utils::get_map(Utils::levelID));
+                        x[i]->move(Utils::get_map(Utils::levelID),Utils::get_item(Utils::levelID));
                     }
                 }
 
@@ -349,3 +349,9 @@ int main()
 
     return 0;
 }
+
+/*
+
+背包效果可以直接一个item一个window，关闭window的话等于丢掉item，用掉item的话自动关闭对应window
+
+*/

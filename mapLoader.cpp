@@ -111,6 +111,8 @@ std::vector<sf::Sprite> Map_Loader::getMapSprites_asVector(sf::RenderWindow& win
                 tileSprite.setOrigin(TILE_ORIGIN, TILE_ORIGIN);
                 
                 switch (itemID) {
+
+                    // letter
                     case -1: {
                         tileSprite.setScale(0.9f, 0.9f);
                         tileSprite.setTexture(letter_texture);

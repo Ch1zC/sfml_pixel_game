@@ -13,7 +13,7 @@ public:
     const int get_frameSize_x()          { return this->frameSize.x; }
     const int get_frameSize_y()          { return this->frameSize.y; }
     void set_isMovingF ()                { this->isMoving = false  ; }
-    void move(std::vector<std::vector<int>>);
+    void move(std::vector<std::vector<int>>, std::vector<std::vector<int>>);
     void animationPlayer(float, sf::Sprite&);
 
 private:

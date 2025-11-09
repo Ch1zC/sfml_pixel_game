@@ -34,7 +34,7 @@ Player_Controller::Player_Controller(std::string name, sf::Vector2i pos, std::st
     this->playerSprite.setPosition(pos.x,pos.y);
 }
 
-void Player_Controller::move(std::vector<std::vector<int>> map) {
+void Player_Controller::move(std::vector<std::vector<int>> map, std::vector<std::vector<int>> item_map) {
 
     sf::Time dt = Utils::dt;
     float dtSeconds = Utils::dtSeconds;
@@ -92,7 +92,6 @@ void Player_Controller::move(std::vector<std::vector<int>> map) {
     int tileX_right  = (int)(playerPos_afterMove.left + playerPos_afterMove.width - padding_left) / TS_MS;
     int tileY_top    = (int)(playerPos_afterMove.top  - padding_top                             ) / TS_MS;
     int tileY_bottom = (int)(playerPos_afterMove.top  + playerPos_afterMove.height - padding_top) / TS_MS;
-
 
     for (int y = tileY_top; y <= tileY_bottom; ++y)
     {
@@ -183,6 +182,10 @@ void Player_Controller::move(std::vector<std::vector<int>> map) {
                     playerPos_afterMove.top = playerPos2.top + movement.y;
                 }
             }
+
+            /*if (item_map[y][x] < 0) {
+                std::cout << "item is at: " + std::to_string(x) +" , " + std::to_string(y) << std::endl;
+            }*/
         }
     }
 

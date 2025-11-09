@@ -15,6 +15,8 @@ namespace Utils {
 
     std::string talk_text{};
 
+    sf::Vector2<int> item_nearby(0,0);
+
     sf::Vector2<int> get_padding(std::vector<std::vector<int>> map) {
 
         int padding_top{}, padding_left{};
@@ -58,7 +60,7 @@ namespace Utils {
                 {0,0,0,0,0,0,0,0},
                 {0,0,-1,0,0,0,0,0},
                 {0,0,0,0,0,0,0,0},
-                {0,0,0,0,0,0,0,0},
+                {0,0,0,0,0,-1,0,0},
                 {0,0,0,0,0,0,0,0}
             }
         };

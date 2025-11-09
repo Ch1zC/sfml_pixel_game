@@ -6,8 +6,7 @@
 enum class CommandType {
     TALK,                  // 对话
     SET_GAME_VIEW_VISIBLE, // 游戏世界可见性
-    SET_QUEST_STAGE,       // 任务阶段
-    GET_QUEST_STAGE
+    SET_QUEST_STAGE       // 任务阶段
 };
 
 struct GameCommand {
@@ -39,6 +38,8 @@ namespace Utils {
     extern sf::RenderWindow* main_window;
 
     extern int levelID;
+
+    extern sf::Vector2<int> item_nearby;
 
     sf::Vector2<int> get_padding(std::vector<std::vector<int>>);
 
