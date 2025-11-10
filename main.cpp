@@ -45,9 +45,9 @@ enum class GameState {
 float dialog_delay_timer = 1.f;
 
 // 说话
-void lua_queue_talk(std::string name, std::string text) {
+void lua_queue_talk(int id, std::string text) {
     GameCommand cmd(CommandType::TALK);
-    cmd.string_data_1 = name;
+    cmd.int_data = id;
     cmd.string_data_2 = text;
     Utils::command_queue.push(cmd);
 }
@@ -66,6 +66,8 @@ void lua_queue_set_stage(std::string quest_name, int stage) {
     cmd.int_data = stage;
     Utils::command_queue.push(cmd);
 }
+
+std::vector<sf::Color> f_color_list = {sf::Color::White, sf::Color::Green};
 
 bool display_gameView = true;
 bool aItemNearbyPlayer = false;
@@ -106,13 +108,15 @@ int main()
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string);
 
     // 说话的字字体
+
+    sf::Color f_color = sf::Color::White;
     sf::Font f;
     if (!f.loadFromFile("fonts/def.ttf")) std::cout << "font cant being load" << std::endl;
 
     sf::Text t;
     t.setFont(f);
     t.setCharacterSize(22);
-    t.setFillColor(sf::Color::White);
+    t.setFillColor(f_color);
 
     // 信的字体
     sf::Text t_letter;
@@ -270,6 +274,7 @@ int main()
                     case CommandType::TALK: {
                 
                         dialog_delay_timer = 1.f; // 说话前等待时长
+                        f_color = f_color_list[current_command.int_data];
                         currentState = GameState::dialogDelay;
                         break;
                     }
@@ -388,7 +393,7 @@ int main()
                 if (dialog_delay_timer <= 0.f) {
 
                     // 别人说话换其他说话声音和文字颜色，主角则是白色和def.ogg
-                    Utils::talk_text = Utils::command_queue.front().string_data_1 + ": " + Utils::command_queue.front().string_data_2;
+                    Utils::talk_text = Utils::command_queue.front().string_data_2;
 
                     displayed_text   = "" ;
                     typewriter_index = 0  ;
