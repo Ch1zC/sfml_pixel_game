@@ -68,6 +68,7 @@ void lua_queue_set_stage(std::string quest_name, int stage) {
 }
 
 std::vector<sf::Color> f_color_list = {sf::Color::White, sf::Color::Green};
+std::vector<sf::SoundBuffer> s_audio_list;
 
 bool display_gameView = true;
 bool aItemNearbyPlayer = false;
@@ -109,14 +110,14 @@ int main()
 
     // 说话的字字体
 
-    sf::Color f_color = sf::Color::White;
+    sf::Color f_color{};
     sf::Font f;
     if (!f.loadFromFile("fonts/def.ttf")) std::cout << "font cant being load" << std::endl;
 
     sf::Text t;
     t.setFont(f);
     t.setCharacterSize(22);
-    t.setFillColor(f_color);
+    
 
     // 信的字体
     sf::Text t_letter;
@@ -124,29 +125,42 @@ int main()
     t_letter.setCharacterSize(40);
     t_letter.setFillColor(sf::Color(0x533461FF));
 
-    // 说话音效
-    sf::SoundBuffer buffer;
-    if (!buffer.loadFromFile("audio/talking.ogg"))
+    // 说话音效 
+    // - talking1
+    sf::SoundBuffer s_audio{};
+
+    sf::SoundBuffer a_talking1;
+    if (!a_talking1.loadFromFile("audio/talking.ogg"))
     {
         std::cerr << "cant find the audio file at path: audio/talking.ogg" << std::endl;
         return -1;
     }
+    s_audio_list.push_back(a_talking1);
 
-    sf::Sound playerSound;
-    playerSound.setBuffer(buffer);
-    playerSound.setLoop(true);
-    playerSound.setVolume(60.f);
+    // - talking2
+    sf::SoundBuffer a_talking2;
+    if (!a_talking2.loadFromFile("audio/talking2.ogg"))
+    {
+        std::cerr << "cant find the audio file at path: audio/talking2.ogg" << std::endl;
+        return -1;
+    }
+    s_audio_list.push_back(a_talking2);
 
-    // 捡信音效
-    sf::SoundBuffer buffer2;
-    if (!buffer2.loadFromFile("audio/pick_up_letter.wav"))
+    sf::Sound s_talking;
+    s_talking.setLoop(true);
+    
+    s_talking.setVolume(60.f);
+
+    // - pick up letter
+    sf::SoundBuffer a_pick_up_letter;
+    if (!a_pick_up_letter.loadFromFile("audio/pick_up_letter.wav"))
     {
         std::cerr << "cant find the audio file at path: audio/pick_up_letter.ogg" << std::endl;
         return -1;
     }
 
     sf::Sound sound_pick_up_letter;
-    sound_pick_up_letter.setBuffer(buffer2);
+    sound_pick_up_letter.setBuffer(a_pick_up_letter);
     sound_pick_up_letter.setLoop(false);
     sound_pick_up_letter.setVolume(60.f);
 
@@ -274,7 +288,11 @@ int main()
                     case CommandType::TALK: {
                 
                         dialog_delay_timer = 1.f; // 说话前等待时长
-                        f_color = f_color_list[current_command.int_data];
+
+                        t.setFillColor(f_color_list[current_command.int_data]);
+
+                        
+                        s_talking.setBuffer(s_audio_list[current_command.int_data]);
                         currentState = GameState::dialogDelay;
                         break;
                     }
@@ -377,7 +395,7 @@ int main()
                 else {
                 
                     finished_typing = true;
-                    playerSound.stop();
+                    s_talking.stop();
                 }
 
                 break;
@@ -399,7 +417,7 @@ int main()
                     typewriter_index = 0  ;
                     typewriter_timer = 0.f;
 
-                    playerSound.play();
+                    s_talking.play();
 
                     currentState = GameState::dialog;
                 }

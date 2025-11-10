@@ -5,9 +5,9 @@ function startGame()
     if stage == 0 then
         sys_setView(false)
         sys_talk(0,"nigga")
-        sys_talk(0,"where the fuck is my chinko")
+        sys_talk(1,"where the fuck is my chinko")
         sys_talk(0,"someone has solen my chinko while i was sleeping!?")
-        sys_talk(0,"i gotta find that shit nigga,i cant wait anymore")
+        sys_talk(1,"i gotta find that shit nigga,i cant wait anymore")
         sys_setView(true)
         sys_setStage("main_plot", 1 )
 
