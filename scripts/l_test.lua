@@ -3,13 +3,13 @@ function startGame()
     local stage = sys_getStage("main_plot")
 
     if stage == 0 then
-        sys_setView(false)
-        sys_talk(0,"Hey")
-        sys_talk(0,"anyone here?")
-        sys_talk(0,"HEY!!!", 1000, 80)
-        sys_talk(0,"...")
-        sys_talk(0,"wake up!")
-        sys_setView(true)
+        --sys_setView(false)
+        --sys_talk(0,"Hey")
+        --sys_talk(0,"anyone here?")
+        --sys_talk(0,"HEY!!!", 1000, 80)
+        --sys_talk(0,"...")
+        --sys_talk(0,"wake up!")
+        --sys_setView(true)
         sys_setStage("main_plot", 1 )
 
     end
