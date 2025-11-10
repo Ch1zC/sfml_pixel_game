@@ -24,7 +24,7 @@ namespace Utils {
         int map_heigh = map.size()    * TILE_SIZE * MAP_SCALE;
         int map_width = map[0].size() * TILE_SIZE * MAP_SCALE;
 
-        if (map_heigh < WINDOW_HEIGH) padding_top  = (WINDOW_HEIGH - map_heigh) / 2;
+        if (map_heigh < WINDOW_HEIGH) padding_top  = (WINDOW_HEIGH - map_heigh) / 2 - 30;
         if (map_width < WINDOW_WIDTH) padding_left = (WINDOW_WIDTH - map_width) / 2;
 
         return sf::Vector2<int>(padding_top, padding_left);

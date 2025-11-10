@@ -45,9 +45,11 @@ enum class GameState {
 float dialog_delay_timer = 1.f;
 
 // 说话
-void lua_queue_talk(int id, std::string text) {
+void lua_queue_talk(int id, std::string text, sol::optional<float> vol, sol::optional<int> size) {
     GameCommand cmd(CommandType::TALK);
-    cmd.int_data = id;
+    cmd.int_data_1 = id;
+    cmd.int_data_2 = size.value_or(25);
+    cmd.float_data_1 = vol.value_or(100.f);
     cmd.string_data_2 = text;
     Utils::command_queue.push(cmd);
 }
@@ -63,7 +65,7 @@ void lua_queue_set_view(bool is_visible) {
 void lua_queue_set_stage(std::string quest_name, int stage) {
     GameCommand cmd(CommandType::SET_QUEST_STAGE);
     cmd.string_data_1 = quest_name;
-    cmd.int_data = stage;
+    cmd.int_data_1 = stage;
     Utils::command_queue.push(cmd);
 }
 
@@ -116,9 +118,7 @@ int main()
 
     sf::Text t;
     t.setFont(f);
-    t.setCharacterSize(22);
     
-
     // 信的字体
     sf::Text t_letter;
     t_letter.setFont(f);
@@ -148,8 +148,6 @@ int main()
 
     sf::Sound s_talking;
     s_talking.setLoop(true);
-    
-    s_talking.setVolume(60.f);
 
     // - pick up letter
     sf::SoundBuffer a_pick_up_letter;
@@ -198,9 +196,21 @@ int main()
                     letter_text = "";
                     display_gameView = true;
 
+                    std::string itemID = std::to_string(Utils::levelID) + "_" + std::to_string(targetGridX) + "_" + std::to_string(targetGridY);
+                    questManager.set_flag("read_" + itemID, true);
+
+                    Utils::print_log("set flag: read_" + itemID + "-> true");
+
                     Utils::print_log("++++ finished reading");
 
                     currentState = GameState::Playing;
+
+                    //检查条件
+                    sol::function lua_checkQuests = lua["checkQuests"];
+                    if (lua_checkQuests.valid()) {
+                        lua_checkQuests();
+                        Utils::print_log("FFFF lua running checkQuests");
+                    }
                 }
 
                 // 进入读信
@@ -211,8 +221,6 @@ int main()
                     Utils::print_log("++++ start reading");
 
                     std::string itemID = std::to_string(Utils::levelID) + "_" + std::to_string(targetGridX) + "_" + std::to_string(targetGridY);
-
-                    std::cout << itemDatabase.get_itemInfoByID(itemID).content << std::endl;
 
                     letter_text = itemDatabase.get_itemInfoByID(itemID).content;
 
@@ -235,7 +243,7 @@ int main()
         sf::Vector2f default_center  = ui_view.getCenter();
         sf::Vector2f dialogue_center = default_center;
 
-        dialogue_center.y += 70.f; // 有话说时游戏场景向上移动后的y
+        dialogue_center.y += 30.f; // 有话说时游戏场景向上移动后的y
 
         switch (currentState) {
         
@@ -258,6 +266,7 @@ int main()
                 lua.set_function("sys_setView" , &lua_queue_set_view );
                 lua.set_function("sys_setStage", &lua_queue_set_stage);
                 lua.set_function("sys_getStage", &Quest_Manager::get_stage, &questManager);
+                lua.set_function("sys_getFlag" , &Quest_Manager::get_flag, &questManager);
 
                 lua.script_file("scripts/l_test.lua");
 
@@ -289,10 +298,12 @@ int main()
                 
                         dialog_delay_timer = 1.f; // 说话前等待时长
 
-                        t.setFillColor(f_color_list[current_command.int_data]);
+                        t.setFillColor(f_color_list[current_command.int_data_1]);
+                        t.setCharacterSize(current_command.int_data_2);
 
-                        
-                        s_talking.setBuffer(s_audio_list[current_command.int_data]);
+                        s_talking.setBuffer(s_audio_list[current_command.int_data_1]);
+                        s_talking.setVolume(current_command.float_data_1);
+
                         currentState = GameState::dialogDelay;
                         break;
                     }
@@ -305,7 +316,7 @@ int main()
                     }
                     case CommandType::SET_QUEST_STAGE: {
 
-                        questManager.set_stage(current_command.string_data_1, current_command.int_data);
+                        questManager.set_stage(current_command.string_data_1, current_command.int_data_1);
                         Utils::command_queue.pop();
 
                         break;
@@ -376,7 +387,7 @@ int main()
 
             case GameState::dialog: {
 
-                game_view.setCenter(dialogue_center);
+                //game_view.setCenter(dialogue_center);
             
                 if (typewriter_index < Utils::talk_text.length()) {
                     finished_typing = false;
@@ -404,7 +415,7 @@ int main()
             case GameState::dialogDelay: 
             {
 
-                game_view.setCenter(dialogue_center);
+                //game_view.setCenter(dialogue_center);
 
                 dialog_delay_timer -= Utils::dtSeconds;
 

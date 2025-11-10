@@ -14,10 +14,13 @@ struct GameCommand {
     std::string string_data_1;
     std::string string_data_2;
     bool bool_data;
-    int int_data;
+    int int_data_1;
+    int int_data_2;
+    float float_data_1;
+    
 
     // ¹¹Ôìº¯Êı
-    GameCommand(CommandType t) : type(t), bool_data(false), int_data(0) {}
+    GameCommand(CommandType t) : type(t), bool_data(false), int_data_1(0), int_data_2(0), float_data_1(0.f) {}
 };
 
 namespace Utils {
