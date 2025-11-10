@@ -9,6 +9,7 @@ Map_Loader::Map_Loader() :
 	wall_texture_path("wall_hor.png"),
 	corner_texture_path("wall_unhor.png"),
     letter_texture_path("letter.png"),
+    wall_c_texture_path("wall_center.png"),
     texture_parent_path("textures/")
 {
 
@@ -20,6 +21,9 @@ Map_Loader::Map_Loader() :
 
     if (!letter_texture.loadFromFile(texture_parent_path + letter_texture_path))
         std::cout << "cant load texture: " << texture_parent_path + letter_texture_path << std::endl;
+
+    if (!wall_c_texture.loadFromFile(texture_parent_path + wall_c_texture_path))
+        std::cout << "cant load texture: " << texture_parent_path + wall_c_texture_path << std::endl;
 
     tileSprite.scale(Utils::MAP_SCALE, Utils::MAP_SCALE);
 }
@@ -35,13 +39,13 @@ std::vector<sf::Sprite> Map_Loader::getMapSprites_asVector(sf::RenderWindow& win
 
     sf::Vector2f defScale = tileSprite.getScale();
 
-	for (int y = 0; y < map.size(); y++) {
-		
-		for (int x = 0; x < map[y].size();x++) {
+    for (int y = 0; y < map.size(); y++) {
+
+        for (int x = 0; x < map[y].size();x++) {
 
             tileSprite.setScale(defScale.x, defScale.y);
-			
-			int blockID = map[y][x];
+
+            int blockID = map[y][x];
 
             if (blockID != 0) {
 
@@ -95,6 +99,13 @@ std::vector<sf::Sprite> Map_Loader::getMapSprites_asVector(sf::RenderWindow& win
                     tileSprite.setTexture(corner_texture);
                     tileSprite.setRotation(180);
                     break;
+
+                    // Ç½ÌåÕýÃæ
+
+                case 9:
+                    tileSprite.setTexture(wall_c_texture);
+                    tileSprite.setRotation(0);
+                    break;
                 }
 
                 sprites_list.push_back(tileSprite);
@@ -109,7 +120,7 @@ std::vector<sf::Sprite> Map_Loader::getMapSprites_asVector(sf::RenderWindow& win
 
                 tileSprite.setPosition(posX, posY);
                 tileSprite.setOrigin(TILE_ORIGIN, TILE_ORIGIN);
-                
+
                 switch (itemID) {
 
                     // letter
@@ -124,8 +135,7 @@ std::vector<sf::Sprite> Map_Loader::getMapSprites_asVector(sf::RenderWindow& win
                 sprites_list.push_back(tileSprite);
 
             }
-            
-		}
-	}
+        }
+    }
     return sprites_list;
 }

@@ -99,7 +99,7 @@ void Player_Controller::move(std::vector<std::vector<int>> map, std::vector<std:
         {
             if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) continue;
 
-            if (map[y][x] > 0)
+            if (map[y][x] > 0 && map[y][x] != 9)
             {
 
                 float wall_left = padding_left + (x * TS_MS);
@@ -156,7 +156,7 @@ void Player_Controller::move(std::vector<std::vector<int>> map, std::vector<std:
 
             if (y < 0 || y >= MAP_HEIGHT || x < 0 || x >= MAP_WIDTH) continue;
 
-            if (map[y][x] > 0)
+            if (map[y][x] > 0 && map[y][x] != 9)
             {
                 float wall_left = padding_left + (x * TS_MS);
                 float wall_top = padding_top + (y * TS_MS);

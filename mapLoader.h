@@ -16,8 +16,10 @@ private:
 	sf::Texture corner_texture;
 	sf::Texture letter_texture;
 	sf::Sprite tileSprite;
+	sf::Texture wall_c_texture;
 
 	std::string wall_texture_path;
+	std::string wall_c_texture_path;
 	std::string corner_texture_path;
 	std::string texture_parent_path;
 	std::string letter_texture_path;
