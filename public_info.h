@@ -6,7 +6,9 @@
 enum class CommandType {
     TALK,                  // 对话
     SET_GAME_VIEW_VISIBLE, // 游戏世界可见性
-    SET_QUEST_STAGE       // 任务阶段
+    SET_QUEST_STAGE,       // 任务阶段
+    SYS_TEXT,              // 在中间显示文字
+    SYS_TEXT_WITH_IMG      // 显示图片和文字
 };
 
 struct GameCommand {

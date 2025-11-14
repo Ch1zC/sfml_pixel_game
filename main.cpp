@@ -5,18 +5,31 @@
 #include "item_database.h"
 #include "playerController.h"
 
+#include "Windows.h"
+
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
 #include <queue>
 #include <memory>
 #include <vector>
+#include <string>
 #include <iostream>
-#include "Windows.h"
+#include <filesystem>
 
 // public_info.h
 std::queue<GameCommand> Utils::command_queue;
 sf::RenderWindow* Utils::main_window = nullptr;
+
+//audio files
+const std::string audioFiles_path = "audio/text/";
+std::map<std::string, sf::SoundBuffer> audio_files_dict;
+void load_all_audio_files();
+
+//img files
+const std::string imageFiles_path = "textures/img/";
+std::map<std::string, sf::Texture> image_files_dict;
+void load_all_image_files();
 
 // printer
 float typewriter_timer = 0.f    ;
@@ -49,8 +62,24 @@ void lua_queue_talk(int id, std::string text, sol::optional<float> vol, sol::opt
     GameCommand cmd(CommandType::TALK);
     cmd.int_data_1 = id;
     cmd.int_data_2 = size.value_or(25);
-    cmd.float_data_1 = vol.value_or(100.f);
+    cmd.float_data_1  = vol.value_or(100.f);
     cmd.string_data_2 = text;
+    Utils::command_queue.push(cmd);
+}
+
+// 全屏字
+void lua_queue_text(std::string text, sol::optional<std::string> audio_src) {
+    GameCommand cmd(CommandType::SYS_TEXT);
+    cmd.string_data_2 = text;
+    cmd.string_data_1 = audio_src.value_or("");
+    Utils::command_queue.push(cmd);
+}
+
+// 图片配字
+void lua_queue_text_with_img(std::string text, std::string img_src) {
+    GameCommand cmd(CommandType::SYS_TEXT_WITH_IMG);
+    cmd.string_data_2 = text;
+    cmd.string_data_1 = img_src;
     Utils::command_queue.push(cmd);
 }
 
@@ -72,8 +101,10 @@ void lua_queue_set_stage(std::string quest_name, int stage) {
 std::vector<sf::Color> f_color_list = {sf::Color::White, sf::Color::Green};
 std::vector<sf::SoundBuffer> s_audio_list;
 
-bool display_gameView = true;
+bool display_gameView  = true ;
 bool aItemNearbyPlayer = false;
+bool textShowInCenter  = false;
+bool showTextAndImage  = false;
 
 int main()
 {
@@ -106,6 +137,12 @@ int main()
     // 时间供计时
     sf::Clock clock;
 
+    //得到所有audio files
+    load_all_audio_files();
+
+    //得到所有image files
+    load_all_image_files();
+
     // lua实例
     sol::state lua;
     lua.open_libraries(sol::lib::base, sol::lib::package, sol::lib::string);
@@ -114,7 +151,7 @@ int main()
 
     sf::Color f_color{};
     sf::Font f;
-    if (!f.loadFromFile("fonts/def.ttf")) std::cout << "font cant being load" << std::endl;
+    if (!f.loadFromFile("fonts/def.ttf")) Utils::print_log("font cant being load");
 
     sf::Text t;
     t.setFont(f);
@@ -162,6 +199,14 @@ int main()
     sound_pick_up_letter.setLoop(false);
     sound_pick_up_letter.setVolume(60.f);
 
+    // audio of text that showed at center
+    sf::Sound sound_showText;
+    sound_showText.setLoop(false);
+    sound_showText.setVolume(60.f);
+
+    // texture of img that showed at center
+    sf::Sprite sprite_img;
+
 
     // 主循环
     while (window.isOpen())
@@ -180,14 +225,79 @@ int main()
             if (event.type == sf::Event::KeyPressed)
             {
 
+                // 检测用户所在位置是否有item可pick up
+                Player_Controller* player = x[0].get();
+
+                std::vector<std::vector<int>> item_map = Utils::get_item(Utils::levelID);
+                std::vector<std::vector<int>> map = Utils::get_map(Utils::levelID);
+
+                sf::Vector2<int> paddingInfo = Utils::get_padding(map);
+
+                // 计算player中心点所在坐标
+                sf::FloatRect bounds = player->get_sprite().getGlobalBounds();
+
+                float playerCenterX = bounds.left + bounds.width / 2.f;
+                float playerCenterY = bounds.top + bounds.height / 2.f;
+
+                float TS_MS = (Utils::TILE_SIZE * Utils::MAP_SCALE);
+
+                int playerGridX = (int)(playerCenterX - paddingInfo.y) / TS_MS;
+                int playerGridY = (int)(playerCenterY - paddingInfo.x) / TS_MS;
+
+
+                targetGridX = playerGridX;
+                targetGridY = playerGridY;
+
+                int item_id = item_map[targetGridY][targetGridX];
+
+                if (item_id < 0) {
+                    if (!aItemNearbyPlayer) aItemNearbyPlayer = true;
+                }
+                else {
+                    // 等玩家到了没item的地方再设为false
+                    targetGridX = 0;
+                    targetGridY = 0;
+                    if (aItemNearbyPlayer) aItemNearbyPlayer = false;
+                }
+
+                // 人物说话
                 if (currentState == GameState::dialog && event.key.code == sf::Keyboard::F && finished_typing)
                 {
                     Utils::talk_text = "";
                     Utils::command_queue.pop();
 
-                    Utils::print_log("++++ contuine talking");
+                    Utils::print_log("++++ contuine");
                     
                     currentState = GameState::cmdToDo;
+                }
+
+                // 字幕
+                else if (currentState == GameState::dialog && event.key.code == sf::Keyboard::F && textShowInCenter) {
+
+                    Utils::talk_text = "";
+                    Utils::command_queue.pop();
+
+                    Utils::print_log("++++ contuine");
+
+                    display_gameView = true ;
+                    textShowInCenter = false;
+
+                    currentState = GameState::cmdToDo;
+                    
+                }
+
+                else if (currentState == GameState::dialog && event.key.code == sf::Keyboard::F && showTextAndImage) {
+
+                    Utils::talk_text = "";
+                    Utils::command_queue.pop();
+
+                    Utils::print_log("++++ contuine");
+
+                    display_gameView = true;
+                    showTextAndImage = false;
+
+                    currentState = GameState::cmdToDo;
+
                 }
 
                 // 退出读信状态
@@ -263,10 +373,12 @@ int main()
                 x = std::move(levelsManager.get_sprites_needToDraw()); // sf::sprite 和 sf::texture 不可被复制 移交所属权
 
                 lua.set_function("sys_talk"    , &lua_queue_talk     );
+                lua.set_function("sys_showText", &lua_queue_text     );
+                lua.set_function("sys_showTextWithImg", &lua_queue_text_with_img);
                 lua.set_function("sys_setView" , &lua_queue_set_view );
                 lua.set_function("sys_setStage", &lua_queue_set_stage);
                 lua.set_function("sys_getStage", &Quest_Manager::get_stage, &questManager);
-                lua.set_function("sys_getFlag" , &Quest_Manager::get_flag, &questManager);
+                lua.set_function("sys_getFlag" , &Quest_Manager::get_flag , &questManager);
 
                 lua.script_file("scripts/l_test.lua");
 
@@ -307,6 +419,39 @@ int main()
                         currentState = GameState::dialogDelay;
                         break;
                     }
+
+                    case CommandType::SYS_TEXT: {
+
+                        Utils::print_log("++++ showed text at center");
+
+                        dialog_delay_timer = 1.5f;
+
+                        t.setFillColor(sf::Color::White);
+                        t.setCharacterSize(50.f);
+
+                        display_gameView = false;
+                        textShowInCenter = true;
+                        
+                        currentState = GameState::dialogDelay;
+                        break;
+                    }
+
+                    case CommandType::SYS_TEXT_WITH_IMG: {
+
+                        Utils::print_log("++++ showed text and image at center");
+
+                        dialog_delay_timer = 1.5f;
+
+                        t.setFillColor(sf::Color::White);
+                        t.setCharacterSize(20.f);
+
+                        display_gameView = false;
+                        showTextAndImage = true;
+                    
+                        currentState = GameState::dialogDelay;
+                        break;
+                    }
+
                     case CommandType::SET_GAME_VIEW_VISIBLE: {
 
                         display_gameView = current_command.bool_data;
@@ -341,44 +486,7 @@ int main()
                         x[i]->move(Utils::get_map(Utils::levelID),Utils::get_item(Utils::levelID));
                     }
 
-                    // 检测用户所在位置是否有item可pick up
-                    Player_Controller* player = x[0].get();
-
-                    std::vector<std::vector<int>> item_map = Utils::get_item(Utils::levelID);
-                    std::vector<std::vector<int>> map      = Utils::get_map (Utils::levelID);
-
-                    sf::Vector2<int> paddingInfo = Utils::get_padding(map);
-
-                    // 计算player中心点所在坐标
-                    sf::FloatRect bounds = player->get_sprite().getGlobalBounds();
-
-                    float playerCenterX  = bounds.left + bounds.width  / 2.f;
-                    float playerCenterY  = bounds.top  + bounds.height / 2.f;
-
-                    float TS_MS = (Utils::TILE_SIZE * Utils::MAP_SCALE);
-
-                    int playerGridX = (int)(playerCenterX - paddingInfo.y) / TS_MS;
-                    int playerGridY = (int)(playerCenterY - paddingInfo.x) / TS_MS;
-
-
-                    targetGridX = playerGridX;
-                    targetGridY = playerGridY;
-
-                    int item_id = item_map[targetGridY][targetGridX];
-
-                    if (item_id < 0) {
-
-                        // there is a item
-                        //std::cout << "there is a item that you can take at (" << targetGridX << "," << targetGridY << ")" << std::endl;
-
-                        if (!aItemNearbyPlayer) aItemNearbyPlayer = true;
-                    }
-                    else {
-                        // 等玩家到了没item的地方再设为false
-                        targetGridX = 0;
-                        targetGridY = 0;
-                        if (aItemNearbyPlayer) aItemNearbyPlayer = false;
-                    }
+                    // ...
                 }
 
 
@@ -388,25 +496,32 @@ int main()
             case GameState::dialog: {
 
                 //game_view.setCenter(dialogue_center);
-            
-                if (typewriter_index < Utils::talk_text.length()) {
-                    finished_typing = false;
 
-                    const float TIME_PER_CHAR = 0.05f; // 8ms
+                if (!textShowInCenter && !showTextAndImage) {
 
-                    typewriter_timer += Utils::dtSeconds;
+                    if (typewriter_index < Utils::talk_text.length()) {
+                        finished_typing = false;
 
-                    if (typewriter_timer >= TIME_PER_CHAR) {
+                        const float TIME_PER_CHAR = 0.05f; // 8ms
 
-                        typewriter_timer -= TIME_PER_CHAR;
-                        displayed_text += Utils::talk_text[typewriter_index];
-                        typewriter_index++;
+                        typewriter_timer += Utils::dtSeconds;
+
+                        if (typewriter_timer >= TIME_PER_CHAR) {
+
+                            typewriter_timer -= TIME_PER_CHAR;
+                            displayed_text += Utils::talk_text[typewriter_index];
+                            typewriter_index++;
+                        }
+                    }
+                    else {
+
+                        finished_typing = true;
+                        s_talking.stop();
                     }
                 }
-                else {
-                
-                    finished_typing = true;
-                    s_talking.stop();
+                else if(textShowInCenter || showTextAndImage){
+
+                    displayed_text = Utils::talk_text;
                 }
 
                 break;
@@ -421,14 +536,37 @@ int main()
 
                 if (dialog_delay_timer <= 0.f) {
 
-                    // 别人说话换其他说话声音和文字颜色，主角则是白色和def.ogg
                     Utils::talk_text = Utils::command_queue.front().string_data_2;
+                    std::string data_name = Utils::command_queue.front().string_data_1;
 
-                    displayed_text   = "" ;
-                    typewriter_index = 0  ;
-                    typewriter_timer = 0.f;
+                    // 别人说话换其他说话声音和文字颜色，主角则是白色和def.ogg
+                    if (!textShowInCenter) {
 
-                    s_talking.play();
+                        displayed_text   = "" ;
+                        typewriter_index = 0  ;
+                        typewriter_timer = 0.f;
+
+                        s_talking.play();
+                    }
+                    else if(textShowInCenter) {
+
+                        if (data_name != "") {
+                            
+
+                            sound_showText.setBuffer(audio_files_dict.count(data_name) == 0 ? a_talking1 : audio_files_dict[data_name]);
+                            
+                            sound_showText.play();
+                            Utils::print_log("--- playing text audio");
+                        }
+                    }
+                    else if (showTextAndImage) {
+
+                        sf::Texture cantFindTexture;
+                        cantFindTexture.loadFromFile("textures/letter");
+
+                        sprite_img.setTexture(image_files_dict.count(data_name) == 0 ? cantFindTexture : image_files_dict[data_name]);
+
+                    }
 
                     currentState = GameState::dialog;
                 }
@@ -487,10 +625,28 @@ int main()
         // UI --- START ---
 
         if (!Utils::talk_text.empty()) {
+
+
+            if (textShowInCenter) {
+                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
+                    (Utils::WINDOW_HEIGH - t.getGlobalBounds().height) / 2);
+            }
+            else if(textShowInCenter) {
+                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
+                           Utils::WINDOW_HEIGH - 100);
+            }
+            else if (showTextAndImage) {
+                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
+                    Utils::WINDOW_HEIGH - 100);
+                
+                sprite_img.setPosition((Utils::WINDOW_WIDTH - sprite_img.getGlobalBounds().width) / 2,
+                    (Utils::WINDOW_HEIGH - sprite_img.getGlobalBounds().height) / 2);
+
+                window.draw(sprite_img);
+            }
         
             t.setString(displayed_text);
-            t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
-                           Utils::WINDOW_HEIGH - 100);
+            
 
             window.draw(t);
         }
@@ -511,3 +667,48 @@ int main()
 
 2 - 直接画所有地图不过限制game_view可视范围，如果玩家坐标超出了范围得到玩家朝哪个方向走的然后向那个方向移动以一个地图的距离实现跨地图
 */
+
+
+void load_all_audio_files() {
+
+    const std::filesystem::path path{ audioFiles_path };
+    for (auto const& dir_entry : std::filesystem::directory_iterator{ path }) {
+
+        std::filesystem::path  filetype = dir_entry.path().extension();
+        std::string filename = dir_entry.path().filename().string();
+        std::string filepath = dir_entry.path().string();
+
+        if (filetype == ".wav") {
+
+            sf::SoundBuffer sb;
+            sb.loadFromFile(filepath);
+
+            audio_files_dict[filename] = sb;
+
+            Utils::print_log("loaded audio file:" + filepath);
+        }
+        
+    }
+}
+
+void load_all_image_files() {
+
+    const std::filesystem::path path{ imageFiles_path };
+    for (auto const& dir_entry : std::filesystem::directory_iterator{ path }) {
+
+        std::filesystem::path  filetype = dir_entry.path().extension();
+        std::string filename = dir_entry.path().filename().string();
+        std::string filepath = dir_entry.path().string();
+
+        if (filetype == ".png" || filetype == ".jpg") {
+
+            sf::Texture t;
+            t.loadFromFile(filepath);
+
+            image_files_dict[filename] = t;
+
+            Utils::print_log("loaded image file:" + filepath);
+        }
+
+    }
+}
