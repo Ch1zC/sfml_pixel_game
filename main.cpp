@@ -31,6 +31,11 @@ const std::string imageFiles_path = "textures/img/";
 std::map<std::string, sf::Texture> image_files_dict;
 void load_all_image_files();
 
+//img max hight
+void getSpriteScale(sf::Sprite& ,float,float);
+float IMG_MAX_HEIGH = 410.0f;
+float IMG_MAX_WIDTH = 735.f;
+
 // printer
 float typewriter_timer = 0.f    ;
 int   typewriter_index = 0      ;
@@ -75,7 +80,7 @@ void lua_queue_text(std::string text, sol::optional<std::string> audio_src) {
     Utils::command_queue.push(cmd);
 }
 
-// 图片配字
+// 图文模式
 void lua_queue_text_with_img(std::string text, std::string img_src) {
     GameCommand cmd(CommandType::SYS_TEXT_WITH_IMG);
     cmd.string_data_2 = text;
@@ -206,6 +211,12 @@ int main()
 
     // texture of img that showed at center
     sf::Sprite sprite_img;
+    
+    //图文模式下图片找不到时作为替换的纹理
+    sf::Texture cantFindTexture;
+    if (!cantFindTexture.loadFromFile("textures/letter.png")) {
+        Utils::print_log("nah");
+    }
 
 
     // 主循环
@@ -540,18 +551,9 @@ int main()
                     std::string data_name = Utils::command_queue.front().string_data_1;
 
                     // 别人说话换其他说话声音和文字颜色，主角则是白色和def.ogg
-                    if (!textShowInCenter) {
-
-                        displayed_text   = "" ;
-                        typewriter_index = 0  ;
-                        typewriter_timer = 0.f;
-
-                        s_talking.play();
-                    }
-                    else if(textShowInCenter) {
+                    if(textShowInCenter) {
 
                         if (data_name != "") {
-                            
 
                             sound_showText.setBuffer(audio_files_dict.count(data_name) == 0 ? a_talking1 : audio_files_dict[data_name]);
                             
@@ -560,12 +562,21 @@ int main()
                         }
                     }
                     else if (showTextAndImage) {
-
-                        sf::Texture cantFindTexture;
-                        cantFindTexture.loadFromFile("textures/letter");
-
+                        
                         sprite_img.setTexture(image_files_dict.count(data_name) == 0 ? cantFindTexture : image_files_dict[data_name]);
 
+                        sprite_img.setScale(1.f, 1.f);
+                        sprite_img.setOrigin(0.f, 0.f);
+                        sprite_img.setPosition(0.f, 0.f);
+
+                        getSpriteScale(sprite_img,static_cast<float>(sprite_img.getTexture()->getSize().y) ,static_cast<float>(sprite_img.getTexture()->getSize().x));
+                    }
+                    else {
+                        displayed_text   = "" ;
+                        typewriter_index = 0  ;
+                        typewriter_timer = 0.f;
+
+                        s_talking.play();
                     }
 
                     currentState = GameState::dialog;
@@ -628,21 +639,28 @@ int main()
 
 
             if (textShowInCenter) {
+                // center
                 t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
                     (Utils::WINDOW_HEIGH - t.getGlobalBounds().height) / 2);
             }
-            else if(textShowInCenter) {
-                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
-                           Utils::WINDOW_HEIGH - 100);
-            }
             else if (showTextAndImage) {
-                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
-                    Utils::WINDOW_HEIGH - 100);
-                
+                //image and text
+
                 sprite_img.setPosition((Utils::WINDOW_WIDTH - sprite_img.getGlobalBounds().width) / 2,
                     (Utils::WINDOW_HEIGH - sprite_img.getGlobalBounds().height) / 2);
 
+                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
+                    ((Utils::WINDOW_HEIGH - sprite_img.getGlobalBounds().height) / 2) + sprite_img.getGlobalBounds().height + 10);
+
+                std::cout << sprite_img.getGlobalBounds().width << "," << sprite_img.getGlobalBounds().height << std::endl;
+
                 window.draw(sprite_img);
+            }
+            else {
+                // talking
+                t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
+                    Utils::WINDOW_HEIGH - 100);
+                
             }
         
             t.setString(displayed_text);
@@ -680,14 +698,12 @@ void load_all_audio_files() {
 
         if (filetype == ".wav") {
 
-            sf::SoundBuffer sb;
-            sb.loadFromFile(filepath);
-
-            audio_files_dict[filename] = sb;
-
-            Utils::print_log("loaded audio file:" + filepath);
+            sf::SoundBuffer& sb = audio_files_dict[filename];
+            
+            if (sb.loadFromFile(filepath)) {
+                Utils::print_log("loaded audio file:" + filepath);
+            } 
         }
-        
     }
 }
 
@@ -702,13 +718,21 @@ void load_all_image_files() {
 
         if (filetype == ".png" || filetype == ".jpg") {
 
-            sf::Texture t;
-            t.loadFromFile(filepath);
-
-            image_files_dict[filename] = t;
-
-            Utils::print_log("loaded image file:" + filepath);
+            sf::Texture& t_in_map = image_files_dict[filename];
+            if (t_in_map.loadFromFile(filepath)) {
+                Utils::print_log("loaded image file: " + filepath);
+            }
+            else {
+                Utils::print_log("ERROR: Failed to load image " + filepath);
+            }
         }
-
     }
+}
+
+void getSpriteScale(sf::Sprite& s, float imgHei, float imgWid) {
+
+    float scale_x = IMG_MAX_WIDTH / imgWid;
+    float scale_y = IMG_MAX_HEIGH / imgHei;
+
+    s.setScale(std::min(scale_x, scale_y), std::min(scale_x, scale_y));
 }

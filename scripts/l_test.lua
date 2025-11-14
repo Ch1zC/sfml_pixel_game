@@ -13,6 +13,8 @@ function startGame()
         sys_showText("I HATE MYSELF","i_hate_myself.wav")
         sys_showText("I FEEL USELESS","i_feel_useless.wav")
         sys_showTextWithImg("text","building.png");
+        sys_showTextWithImg("tex2t","new.jpg");
+        sys_showTextWithImg("text3","new2.jpg");
         sys_showText("I CANT STOP THINKIN ABOUT THIS")
         sys_setStage("main_plot", 1 )
 
