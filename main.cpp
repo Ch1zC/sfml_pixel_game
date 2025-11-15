@@ -32,9 +32,8 @@ std::map<std::string, sf::Texture> image_files_dict;
 void load_all_image_files();
 
 //img max hight
-void getSpriteScale(sf::Sprite& ,float,float);
-float IMG_MAX_HEIGH = 410.0f;
-float IMG_MAX_WIDTH = 735.f;
+float getSpriteScale(float);
+float IMG_MAX_HEIGH = 500.0f;
 
 // printer
 float typewriter_timer = 0.f    ;
@@ -83,6 +82,7 @@ void lua_queue_text(std::string text, sol::optional<std::string> audio_src) {
 // 图文模式
 void lua_queue_text_with_img(std::string text, std::string img_src) {
     GameCommand cmd(CommandType::SYS_TEXT_WITH_IMG);
+    if (text == "") text = ' ';
     cmd.string_data_2 = text;
     cmd.string_data_1 = img_src;
     Utils::command_queue.push(cmd);
@@ -302,10 +302,15 @@ int main()
                     Utils::talk_text = "";
                     Utils::command_queue.pop();
 
-                    Utils::print_log("++++ contuine");
+                    Utils::print_log("++++ contuine from showTextAndImage");
 
                     display_gameView = true;
                     showTextAndImage = false;
+
+                    /*sprite_img.setTexture(sf::Texture());
+                    sprite_img.setScale(1.f, 1.f);
+                    sprite_img.setOrigin(0.f, 0.f);
+                    sprite_img.setPosition(0.f, 0.f);*/
 
                     currentState = GameState::cmdToDo;
 
@@ -565,11 +570,9 @@ int main()
                         
                         sprite_img.setTexture(image_files_dict.count(data_name) == 0 ? cantFindTexture : image_files_dict[data_name]);
 
-                        sprite_img.setScale(1.f, 1.f);
-                        sprite_img.setOrigin(0.f, 0.f);
-                        sprite_img.setPosition(0.f, 0.f);
+                        float sv = getSpriteScale((float)sprite_img.getTexture()->getSize().y);
 
-                        getSpriteScale(sprite_img,static_cast<float>(sprite_img.getTexture()->getSize().y) ,static_cast<float>(sprite_img.getTexture()->getSize().x));
+                        sprite_img.setScale(sv, sv);
                     }
                     else {
                         displayed_text   = "" ;
@@ -628,7 +631,7 @@ int main()
 
             window.draw(t_letter);
         }
-
+                
         // 场景 --- END ---
 
         window.setView(ui_view);
@@ -651,8 +654,6 @@ int main()
 
                 t.setPosition((Utils::WINDOW_WIDTH - t.getGlobalBounds().width) / 2,
                     ((Utils::WINDOW_HEIGH - sprite_img.getGlobalBounds().height) / 2) + sprite_img.getGlobalBounds().height + 10);
-
-                std::cout << sprite_img.getGlobalBounds().width << "," << sprite_img.getGlobalBounds().height << std::endl;
 
                 window.draw(sprite_img);
             }
@@ -720,19 +721,18 @@ void load_all_image_files() {
 
             sf::Texture& t_in_map = image_files_dict[filename];
             if (t_in_map.loadFromFile(filepath)) {
-                Utils::print_log("loaded image file: " + filepath);
+                Utils::print_log("loaded image file:" + filepath);
             }
             else {
-                Utils::print_log("ERROR: Failed to load image " + filepath);
+                Utils::print_log("ERROR: Failed to load image:" + filepath);
             }
         }
     }
+
+    std::cout << image_files_dict.size() << std::endl;
 }
 
-void getSpriteScale(sf::Sprite& s, float imgHei, float imgWid) {
+float getSpriteScale(float imgHei) {
 
-    float scale_x = IMG_MAX_WIDTH / imgWid;
-    float scale_y = IMG_MAX_HEIGH / imgHei;
-
-    s.setScale(std::min(scale_x, scale_y), std::min(scale_x, scale_y));
+    return IMG_MAX_HEIGH / imgHei;
 }
