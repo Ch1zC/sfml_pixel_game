@@ -1,12 +1,19 @@
 #include "public_info.h"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace Utils {
 
+    std::vector<std::vector<int>> map_showing{};
+    std::vector<std::vector<int>> item_map_showing{};
+
+    std::string map_path_showing{};
+    std::string item_map_path_showing{};
 
     int levelID = 0;
-    std::string WINDOW_TITLE = "chinko finder and his life";
+    std::string WINDOW_TITLE = "a short horror game";
 
     sf::Vector2i windowPos = sf::Vector2i(0.f, 0.f);
 
@@ -16,6 +23,9 @@ namespace Utils {
     std::string talk_text{};
 
     sf::Vector2<int> item_nearby(0,0);
+
+    std::string map_folder_path = "map/";
+    std::string item_map_folder_path = "map/item_map/";
 
     sf::Vector2<int> get_padding(std::vector<std::vector<int>> map) {
 
@@ -30,42 +40,84 @@ namespace Utils {
         return sf::Vector2<int>(padding_top, padding_left);
     }
 
-    std::vector<std::vector<int>> get_map(int id) {
+    void get_map() {
 
-        // 0 - 空气， 1~4 上下左右墙壁，5~8 左上、右上、左下、右下 墙角
-        std::vector<std::vector<std::vector<int>>> map_list = {
+        std::string p = map_folder_path + map_path_showing;
 
-            {
-                {5,1,1,1,1,1,1,6},
-                {3,9,9,9,9,9,9,4},
-                {3,0,0,0,0,0,0,4},
-                {3,0,0,0,0,0,0,4},
-                {3,0,0,0,0,0,0,4},
-                {3,0,0,0,0,0,0,4},
-                {7,2,2,2,2,2,2,8}
+        std::ifstream inputFile(p); // 打开文件
+        std::string line;
+
+        std::vector<std::vector<int>> result_l;
+
+        if (inputFile.is_open()) {
+            while (std::getline(inputFile, line)) {
+
+                std::vector<int> l;
+                std::stringstream ss(line);
+                std::string segment;
+
+                while (std::getline(ss, segment, ',')) // 按 ',' 分割
+                {
+                    int v = 0;
+                    try {
+                        v = std::stoi(segment); // std::stoi 会自动处理 " 0"
+                    }
+                    catch (...) {
+                        v = 0;
+                    }
+                    l.push_back(v);
+                }
+                
+                result_l.push_back(std::move(l));
             }
-        };
+            inputFile.close();
+            print_log("loaded level file: " + p);
 
-        if (id < map_list.size()) return map_list[id];
+            map_showing = result_l;
+        }
+        else {
+            print_log("cant load level file: " + p);
+        }
     }
 
-    std::vector<std::vector<int>> get_item(int id) {
+    void get_item() {
 
-        // 0 - 空气， 1~4 上下左右墙壁，5~8 左上、右上、左下、右下 墙角
-        std::vector<std::vector<std::vector<int>>> item_list = {
+        std::string p = item_map_folder_path + item_map_path_showing;
 
-            {
-                {0,0, 0,0,0,0,0,0},
-                {0,0, 0,0,0,0,0,0},
-                {0,0, 0,0,0,0,0,0},
-                {0,0,-1,0,0,0,0,0},
-                {0,0, 0,0,0,0,0,0},
-                {0,0,0,0,0,-1,0,0},
-                {0,0, 0,0,0,0,0,0}
+        std::ifstream inputFile(p); // 打开文件
+        std::string line;
+
+        std::vector<std::vector<int>> result_l;
+
+        if (inputFile.is_open()) {
+            while (std::getline(inputFile, line)) {
+
+                std::vector<int> l;
+                std::stringstream ss(line);
+                std::string segment;
+
+                while (std::getline(ss, segment, ',')) // 按 ',' 分割
+                {
+                    int v = 0;
+                    try {
+                        v = std::stoi(segment); // std::stoi 会自动处理 " 0"
+                    }
+                    catch (...) {
+                        v = 0;
+                    }
+                    l.push_back(v);
+                }
+
+                result_l.push_back(std::move(l));
             }
-        };
+            inputFile.close();
+            print_log("loaded item level file: " + p);
 
-        if (id < item_list.size()) return item_list[id];
+            item_map_showing = result_l;
+        }
+        else {
+            print_log("cant load item level file: " + p);
+        }
     }
 
     void print_log(std::string x) { std::cout << x << std::endl; };

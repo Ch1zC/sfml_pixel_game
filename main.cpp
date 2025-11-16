@@ -103,6 +103,14 @@ void lua_queue_set_stage(std::string quest_name, int stage) {
     Utils::command_queue.push(cmd);
 }
 
+// 设置地图
+void lua_queue_set_map(std::string map_src, sol::optional<std::string> i_map_src) {
+    GameCommand cmd(CommandType::SYS_SET_MAP);
+    cmd.string_data_1 = map_src;
+    cmd.string_data_2 = i_map_src.value_or(map_src);
+    Utils::command_queue.push(cmd);
+}
+
 std::vector<sf::Color> f_color_list = {sf::Color::White, sf::Color::Green};
 std::vector<sf::SoundBuffer> s_audio_list;
 
@@ -239,8 +247,8 @@ int main()
                 // 检测用户所在位置是否有item可pick up
                 Player_Controller* player = x[0].get();
 
-                std::vector<std::vector<int>> item_map = Utils::get_item(Utils::levelID);
-                std::vector<std::vector<int>> map = Utils::get_map(Utils::levelID);
+                std::vector<std::vector<int>> item_map = Utils::item_map_showing;
+                std::vector<std::vector<int>> map = Utils::map_showing;
 
                 sf::Vector2<int> paddingInfo = Utils::get_padding(map);
 
@@ -393,6 +401,7 @@ int main()
                 lua.set_function("sys_showTextWithImg", &lua_queue_text_with_img);
                 lua.set_function("sys_setView" , &lua_queue_set_view );
                 lua.set_function("sys_setStage", &lua_queue_set_stage);
+                lua.set_function("sys_setMap",   &lua_queue_set_map);
                 lua.set_function("sys_getStage", &Quest_Manager::get_stage, &questManager);
                 lua.set_function("sys_getFlag" , &Quest_Manager::get_flag , &questManager);
 
@@ -421,6 +430,18 @@ int main()
                 GameCommand& current_command = Utils::command_queue.front();
 
                 switch (current_command.type) {
+
+                    case CommandType::SYS_SET_MAP: {
+
+                        Utils::map_path_showing = current_command.string_data_1;
+                        Utils::item_map_path_showing = current_command.string_data_2;
+                        Utils::command_queue.pop();
+
+                        Utils::get_map ();
+                        Utils::get_item();
+
+                        break;
+                    }
 
                     case CommandType::TALK: {
                 
@@ -499,7 +520,7 @@ int main()
                 }
                 else {
                     for (int i = 0; i <= x.size() - 1;i++) {
-                        x[i]->move(Utils::get_map(Utils::levelID),Utils::get_item(Utils::levelID));
+                        x[i]->move(Utils::map_showing,Utils::item_map_showing);
                     }
 
                     // ...
@@ -616,8 +637,8 @@ int main()
 
         //currentState == GameState::Playing
         if (display_gameView) {
-
-            levelsManager.show_level(window);
+              
+            if(!Utils::map_path_showing.empty() && !Utils::item_map_path_showing.empty()) levelsManager.show_level(window);
 
             for (int i = 0; i <= x.size() - 1;i++) {
                 window.draw(x[i]->get_sprite());
@@ -728,8 +749,6 @@ void load_all_image_files() {
             }
         }
     }
-
-    std::cout << image_files_dict.size() << std::endl;
 }
 
 float getSpriteScale(float imgHei) {

@@ -10,7 +10,8 @@ function startGame()
         --sys_talk(0,"...")
         --sys_talk(0,"wake up!")
         --sys_setView(true)
-
+        sys_setMap("test_level.txt")
+        
         sys_showText("you shouldn't be here","you_shouldnt_be_here.wav")
         sys_showText("you know what have you done","you_know_what_have_you_done.wav")
         sys_showText("you know what have you said","you_know_what_have_you_said.wav")
@@ -22,6 +23,7 @@ function startGame()
         sys_showText("why didnt you help me?","why_didnt_you_help_me.wav")
         sys_showText("i hate you","i_hate_you.wav")
         sys_showTextWithImg("","x01.png")
+
         sys_setStage("main_plot", 1 )
 
     end

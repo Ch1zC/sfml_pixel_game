@@ -32,8 +32,8 @@ std::vector<sf::Sprite> Map_Loader::getMapSprites_asVector(sf::RenderWindow& win
 
     std::vector<sf::Sprite> sprites_list;
 
-    std::vector<std::vector<int>> map = Utils::get_map(mapID);
-    std::vector<std::vector<int>> item_map = Utils::get_item(mapID);
+    std::vector<std::vector<int>> map = Utils::map_showing;
+    std::vector<std::vector<int>> item_map = Utils::item_map_showing;
 
     sf::Vector2<int> paddingInfo = Utils::get_padding(map);
 

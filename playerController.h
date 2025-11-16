@@ -47,8 +47,6 @@ private:
     int currentFrame;
     int totalFrames;
 
-    
-
     sf::Vector2i frameSize;
 
     sf::Vector2i defPos;

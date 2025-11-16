@@ -8,7 +8,8 @@ enum class CommandType {
     SET_GAME_VIEW_VISIBLE, // 游戏世界可见性
     SET_QUEST_STAGE,       // 任务阶段
     SYS_TEXT,              // 在中间显示文字
-    SYS_TEXT_WITH_IMG      // 显示图片和文字
+    SYS_TEXT_WITH_IMG,     // 显示图片和文字
+    SYS_SET_MAP
 };
 
 struct GameCommand {
@@ -32,7 +33,11 @@ namespace Utils {
 
     constexpr int WINDOW_HEIGH = 830;
     constexpr int WINDOW_WIDTH = 900;
+
     extern std::string WINDOW_TITLE ;
+
+    extern std::string map_path_showing;
+    extern std::string item_map_path_showing;
 
     extern sf::Time dt;
     extern float dtSeconds;
@@ -46,10 +51,16 @@ namespace Utils {
 
     extern sf::Vector2<int> item_nearby;
 
+    extern std::string map_folder_path;
+    extern std::string item_map_folder_path;
+
+    extern std::vector<std::vector<int>> map_showing;
+    extern std::vector<std::vector<int>> item_map_showing;
+
     sf::Vector2<int> get_padding(std::vector<std::vector<int>>);
 
-    std::vector<std::vector<int>> get_map (int id);
-    std::vector<std::vector<int>> get_item(int id);
+    void get_map ();
+    void get_item();
 
     void print_log(std::string x);
 }
